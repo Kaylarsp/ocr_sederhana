@@ -13,32 +13,28 @@ class ScanScreen extends StatefulWidget {
 
 class _ScanScreenState extends State<ScanScreen> {
   late CameraController _controller;
-  Future<void>? _initializeControllerFuture; 
-  late List<CameraDescription> _cameras; 
+  Future<void>? _initializeControllerFuture;
+  late List<CameraDescription> _cameras;
 
   @override
   void initState() {
     super.initState();
-    _initCamera(); 
+    _initCamera();
   }
 
-  // Fungsi untuk inisialisasi kamera
   void _initCamera() async {
     try {
-      _cameras = await availableCameras(); // Dapatkan kamera
+      _cameras = await availableCameras(); 
       _controller = CameraController(
-        _cameras[0], // Gunakan kamera utama
+        _cameras[0], 
         ResolutionPreset.medium,
       );
-      // Assign future-nya ke variabel state
       _initializeControllerFuture = _controller.initialize();
-      
-      // Panggil setState agar build() tahu future-nya sudah ada
+
       if (mounted) {
         setState(() {});
       }
     } catch (e) {
-      // Handle error jika tidak ada kamera atau ada masalah lain
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -51,12 +47,10 @@ class _ScanScreenState extends State<ScanScreen> {
 
   @override
   void dispose() {
-    // Pastikan controller di-dispose saat widget ditutup
     _controller.dispose();
     super.dispose();
   }
 
-  // Fungsi OCR tetap sama
   Future<String> _ocrFromFile(File imageFile) async {
     final inputImage = InputImage.fromFile(imageFile);
     final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
@@ -66,10 +60,8 @@ class _ScanScreenState extends State<ScanScreen> {
     return recognizedText.text;
   }
 
-  // Fungsi ambil gambar tetap sama
   Future<void> _takePicture() async {
     try {
-      // Pastikan future-nya sudah selesai
       await _initializeControllerFuture;
 
       if (!mounted) return;
@@ -94,8 +86,8 @@ class _ScanScreenState extends State<ScanScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error saat mengambil / memproses foto: $e'),
+        const SnackBar(
+          content: Text('Pemindaian Gagal! Periksa Izin Kamera atau coba lagi.'),
         ),
       );
     }
@@ -103,15 +95,26 @@ class _ScanScreenState extends State<ScanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Cek jika future-nya belum di-set (artinya _initCamera belum jalan)
     if (_initializeControllerFuture == null) {
       return Scaffold(
+        backgroundColor: Colors.grey[900],
         appBar: AppBar(title: const Text('Kamera OCR')),
-        body: const Center(child: CircularProgressIndicator()),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              CircularProgressIndicator(color: Colors.yellow),
+              SizedBox(height: 16), // Memberi jarak
+              Text(
+                'Memuat Kamera... Harap tunggu.',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
-    // Gunakan FutureBuilder untuk menunggu inisialisasi kamera
     return FutureBuilder<void>(
       future: _initializeControllerFuture,
       builder: (context, snapshot) {
@@ -139,16 +142,27 @@ class _ScanScreenState extends State<ScanScreen> {
             ),
           );
         } else if (snapshot.hasError) {
-          // Jika ada error saat inisialisasi
-           return Scaffold(
-             appBar: AppBar(title: const Text('Kamera OCR')),
-             body: Center(child: Text('Error: ${snapshot.error}')),
-           );
-        } else {
-          // Jika future masih loading (proses inisialisasi)
           return Scaffold(
             appBar: AppBar(title: const Text('Kamera OCR')),
-            body: const Center(child: CircularProgressIndicator()),
+            body: Center(child: Text('Error: ${snapshot.error}')),
+          );
+        } else {
+          return Scaffold(
+            backgroundColor: Colors.grey[900],
+            appBar: AppBar(title: const Text('Kamera OCR')),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  CircularProgressIndicator(color: Colors.yellow),
+                  SizedBox(height: 16), // Memberi jarak
+                  Text(
+                    'Memuat Kamera... Harap tunggu.',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                ],
+              ),
+            ),
           );
         }
       },
